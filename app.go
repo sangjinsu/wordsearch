@@ -56,14 +56,26 @@ func FindWordInFiles(word string, filePath string) []FileData {
 		return fileDataList
 	}
 
+	fileDataChannel := make(chan FileData)
+	count := len(fileList)
+	recvCnt := 0
+
 	for _, name := range fileList {
-		fileDataList = append(fileDataList, FindWordInFile(word, name))
+		go FindWordInFile(word,  name, fileDataChannel)
+	}
+
+	for fileData := range fileDataChannel {
+		fileDataList = append(fileDataList, fileData)
+		recvCnt++
+		if recvCnt == count {
+			break
+		}
 	}
 
 	return fileDataList
 }
 
-func FindWordInFile(word, fileName string) FileData {
+func FindWordInFile(word, fileName string, fileDataChannel chan FileData) {
 	fileData := FileData{fileName, []Line{}}
 	file, err := os.Open(fileName)
 	defer func(file *os.File) {
@@ -74,7 +86,7 @@ func FindWordInFile(word, fileName string) FileData {
 	}(file)
 	if err != nil {
 		fmt.Println(fileName, "파일을 찾을 수 없습니다. err:", err)
-		return fileData
+		fileDataChannel <- fileData
 	}
 
 	lineNumber := 1
@@ -90,5 +102,5 @@ func FindWordInFile(word, fileName string) FileData {
 		lineNumber++
 	}
 
-	return fileData
+	fileDataChannel <- fileData
 }
