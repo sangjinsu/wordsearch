@@ -1,6 +1,8 @@
 # wordsearch
 ## 단어 검색 프로그램
 
+- Tucker의 Go 언어 프로그래밍 2021 참조
+
 ### 1. struct 구조체 이름 변경
 ```go
 type Line struct {
@@ -14,7 +16,7 @@ type FileData struct {
 }
 ```
 
-### 2. 소문자 대문자 상관 없이 단어 검색
+### 2. 소문자 대문자 상관 없이 단어 검색 추가
 ```go
 // FindWordInFile function 
 wordToLower := strings.ToLower(word)
