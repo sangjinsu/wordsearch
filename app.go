@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Line struct {
@@ -17,6 +18,8 @@ type FileData struct {
 	fileName string
 	lines    []Line
 }
+
+var wg sync.WaitGroup
 
 func main() {
 	if len(os.Args) < 3 {
@@ -57,25 +60,26 @@ func FindWordInFiles(word string, filePath string) []FileData {
 	}
 
 	fileDataChannel := make(chan FileData)
-	count := len(fileList)
-	recvCnt := 0
 
 	for _, name := range fileList {
-		go FindWordInFile(word,  name, fileDataChannel)
+		wg.Add(1)
+		go FindWordInFile(word, name, fileDataChannel)
 	}
 
 	for fileData := range fileDataChannel {
 		fileDataList = append(fileDataList, fileData)
-		recvCnt++
-		if recvCnt == count {
-			break
-		}
 	}
+
+	wg.Wait()
+	close(fileDataChannel)
 
 	return fileDataList
 }
 
 func FindWordInFile(word, fileName string, fileDataChannel chan FileData) {
+
+	defer wg.Done()
+
 	fileData := FileData{fileName, []Line{}}
 	file, err := os.Open(fileName)
 	defer func(file *os.File) {
