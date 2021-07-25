@@ -76,15 +76,17 @@ func FindWordInFiles(word string, pattern string) []FileData {
 		return fileDataList
 	}
 
-	fileDataChannel := make(chan FileData, 10)
+	fileDataChannel := make(chan FileData)
 
 	for _, name := range fileList {
 		wg.Add(1)
 		go FindWordInFile(word, name, fileDataChannel)
 	}
 
-	wg.Wait()
-	close(fileDataChannel)
+	go func() {
+		wg.Wait()
+		close(fileDataChannel)
+	}()
 
 	for fileData := range fileDataChannel {
 		fileDataList = append(fileDataList, fileData)
