@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,8 +32,8 @@ func main() {
 	files := os.Args[2:]
 	var fileDataList []FileData
 
-	for _, path := range files {
-		fileDataList = append(fileDataList, FindWordInFiles(word, path)...)
+	for _, pattern := range files {
+		fileDataList = append(fileDataList, FindWordInFiles(word, pattern)...)
 	}
 
 	for _, fileData := range fileDataList {
@@ -46,32 +47,48 @@ func main() {
 	}
 }
 
-func GetFileList(path string) ([]string, error) {
-	return filepath.Glob(path)
+func GetFileList(pattern string) ([]string, error) {
+	var fileList []string
+	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+		if !info.IsDir() {
+			match, err := filepath.Match(pattern, info.Name())
+			if err != nil {
+				return err
+			}
+			if match {
+				fileList = append(fileList, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return fileList, nil
 }
 
-func FindWordInFiles(word string, filePath string) []FileData {
+func FindWordInFiles(word string, pattern string) []FileData {
 	var fileDataList []FileData
 
-	fileList, err := GetFileList(filePath)
+	fileList, err := GetFileList(pattern)
 	if err != nil {
 		fmt.Println("파일을 찾을 수 없습니다. err:", err)
 		return fileDataList
 	}
 
-	fileDataChannel := make(chan FileData)
+	fileDataChannel := make(chan FileData, 10)
 
 	for _, name := range fileList {
 		wg.Add(1)
 		go FindWordInFile(word, name, fileDataChannel)
 	}
 
+	wg.Wait()
+	close(fileDataChannel)
+
 	for fileData := range fileDataChannel {
 		fileDataList = append(fileDataList, fileData)
 	}
-
-	wg.Wait()
-	close(fileDataChannel)
 
 	return fileDataList
 }
