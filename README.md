@@ -55,7 +55,7 @@ go func() {
     close(fileDataChannel)
 }()
     
-// buffered channel
+// buffered channel, 버퍼 크기를 조정해야 한다
 wg.Wait()
 close(fileDataChannel)
 
